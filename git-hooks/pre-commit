@@ -1,0 +1,13 @@
+#!/bin/sh
+
+PATTERN="[A-Z]+-[0-9]+"
+
+BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD 2> /dev/null | grep -oE "${PATTERN}")
+
+# Check if message already is prefixed
+MESSAGE_IS_ALREADY_PREFIXED=$(cat $1 | grep -oE "${PATTERN}")
+
+# if successfully parsed Jira ticket reference from branch name and message is not already prefix, prepend message with ticket reference
+if [ -n "$BRANCH_NAME" ] && [ -z "$MESSAGE_IS_ALREADY_PREFIXED" ]; then
+    echo "[$BRANCH_NAME] $(cat $1)" > $1
+fi

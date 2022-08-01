@@ -1,0 +1,74 @@
+name: Test CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - review_requested
+      - ready_for_review
+
+jobs:
+  linter-test:
+    name: 'Linter Test'
+    runs-on: docker
+    container: node:16.13.0-alpine3.14
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      - name: Run Linter
+        run: yarn lint
+
+  build-test:
+    name: 'Build Test'
+    runs-on: docker
+    container: node:16.13.0-alpine3.14
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      - name: Run build
+        run: yarn build
+
+  continous-integration-tests:
+    name: 'Continous Integration Tests'
+    runs-on: docker
+    container: node:16.13.0-alpine3.14
+    env:
+      ENV: test
+      DATABASE: '{"username": "postgres", "password": "password123", "host": "postgres", "port": "5432", "dbname": "postgres"}'
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    needs: [linter-test, build-test]
+    if: ${{ !github.event.pull_request.draft }}
+
+    services:
+      postgres:
+        image: postgres:13.4-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password123
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        # needed because the postgres container does not provide a healthcheck
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      - name: Run tests
+        run: yarn test

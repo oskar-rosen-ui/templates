@@ -1,0 +1,46 @@
+name: Trigger Deployment to AWS
+
+on:
+  workflow_dispatch:
+    inputs:
+      deployment_env:
+        description: 'Select the environment to deploy to.'
+        required: true
+        default: 'proto'
+        type: choice
+        options:
+          - proto
+          - qa
+          - prod
+
+      ref:
+        description: 'Enter the tag, commit, or branch to deploy'
+        required: true
+        default: 'master'
+        type: string
+
+jobs:
+  trigger-deployment:
+    name: 'Trigger Deployment'
+    runs-on: linux
+    steps:
+      - name: Input arguments
+        run: |
+          echo "::notice deployment_env: ${{ inputs.deployment_env }}"
+          echo "::notice ref: ${{ inputs.ref }}"
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Setup Git User
+        run: |
+          git config --local user.email "${GITHUB_ACTOR}"
+          git config --local user.name "${GITHUB_ACTOR}"
+      - name: Sync with remote
+        run: |
+          git pull
+          git fetch --prune --prune-tags
+      - name: Checkout deployment branch
+        run: git checkout ${{ inputs.deployment_env }}
+      - name: Update deployment branch
+        run: git reset ${{ inputs.ref }} --hard
+      - name: Push changes to remote
+        run: git push origin --force-with-lease

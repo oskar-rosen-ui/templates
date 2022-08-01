@@ -1,0 +1,27 @@
+{
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 2021,
+    "sourceType": "module",
+    "project": ["./tsconfig.json"] // Specify it only for TypeScript files
+  },
+  "plugins": ["security"],
+  "extends": ["plugin:security/recommended", "plugin:@typescript-eslint/recommended", "prettier"],
+  "rules": {
+    "semi": "off",
+    "no-control-regex": "off",
+    "camelcase": "off",
+    "quotes": [2, "single", { "avoidEscape": true, "allowTemplateLiterals": true }],
+    "@typescript-eslint/no-unused-vars": ["warn", { "args": "all", "argsIgnorePattern": "^_" }],
+    "@typescript-eslint/no-explicit-any": "error",
+    "@typescript-eslint/no-floating-promises": "error",
+    "@typescript-eslint/no-for-in-array": "error",
+    "@typescript-eslint/no-implied-eval": "error",
+    "@typescript-eslint/no-unnecessary-type-assertion": "error",
+    "@typescript-eslint/no-unsafe-call": "error",
+    "@typescript-eslint/no-unsafe-return": "error",
+    "@typescript-eslint/require-await": "error",
+    "@typescript-eslint/restrict-plus-operands": "error",
+    "@typescript-eslint/unbound-method": "error"
+  }
+}

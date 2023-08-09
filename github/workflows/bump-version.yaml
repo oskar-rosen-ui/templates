@@ -10,6 +10,9 @@ on:
         type: choice
         options:
           - prerelease
+          - prepatch
+          - preminor
+          - premajor
           - patch
           - minor
           - major
@@ -19,7 +22,7 @@ jobs:
     name: 'Bump version'
     runs-on: linux
     env:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }} # Needs to be created
+      PRE_IDENTIFIER_NAME: alpha
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -27,30 +30,40 @@ jobs:
         run: |
           git config --local user.email "${GITHUB_ACTOR}"
           git config --local user.name "${GITHUB_ACTOR}"
+      - name: Set if is pre release variables
+        run: |
+          if [[ ${{ inputs.version_type }} == pre* ]]; then
+            echo "is_prerelease=true" >> $GITHUB_ENV
+          else
+            echo "is_prerelease=false" >> $GITHUB_ENV
+          fi
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
-          node-version: '16'
+          node-version: 20.2.0
       - name: Install Yarn
         run: npm install --global yarn
       - name: Sync local tags with remote
         run: git fetch --prune --prune-tags
-      - name: Bump version in package.json and tag
+      - name: Bump version in package.json and tag with pre identifier
+        if: env.is_prerelease == 'true'
+        run: yarn version --${{ inputs.version_type }} --preid ${{ env.PRE_IDENTIFIER_NAME }}
+      - name: Bump version in package.json and tag without pre identifier
+        if: env.is_prerelease != 'true'
         run: yarn version --${{ inputs.version_type }}
       - name: Push changes back to remote
         run: |
           git push
           git push --tags
-      - name: Set variables
-        id: vars
+      - name: Set release name
         run: |
-          echo ::set-output name=release_name::"v$(jq -r ".version" package.json)"
+          echo "release_name=v$(jq -r ".version" package.json)" >> $GITHUB_ENV
       - name: Create Release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ steps.vars.outputs.release_name }}
-          release_name: ${{ steps.vars.outputs.release_name }}
-          draft: false
-          prerelease: false
+          tag_name: ${{ env.release_name }}
+          release_name: ${{ env.release_name }}
+          draft: true
+          prerelease: ${{ env.is_prerelease }}

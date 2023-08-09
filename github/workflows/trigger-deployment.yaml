@@ -16,7 +16,7 @@ on:
       ref:
         description: 'Enter the tag, commit, or branch to deploy'
         required: true
-        default: 'master'
+        default: 'main'
         type: string
 
 jobs:
@@ -30,14 +30,18 @@ jobs:
           echo "::notice ref: ${{ inputs.ref }}"
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - name: Setup Git User
         run: |
           git config --local user.email "${GITHUB_ACTOR}"
           git config --local user.name "${GITHUB_ACTOR}"
       - name: Sync with remote
         run: |
-          git pull
+          git pull origin ${{ inputs.ref }}
           git fetch --prune --prune-tags
+      - name: Checkout branch
+        run: git checkout ${{ inputs.ref }}
       - name: Checkout deployment branch
         run: git checkout ${{ inputs.deployment_env }}
       - name: Update deployment branch
